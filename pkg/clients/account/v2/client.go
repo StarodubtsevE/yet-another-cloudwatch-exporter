@@ -18,34 +18,27 @@ import (
 	"log/slog"
 
 	"github.com/aws/aws-sdk-go-v2/service/iam"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
-
 	"github.com/prometheus-community/yet-another-cloudwatch-exporter/pkg/clients/account"
 )
 
 type client struct {
 	logger    *slog.Logger
-	stsClient *sts.Client
 	iamClient *iam.Client
 }
 
 func NewClient(logger *slog.Logger, stsClient *sts.Client, iamClient *iam.Client) account.Client {
 	return &client{
 		logger:    logger,
-		stsClient: stsClient,
 		iamClient: iamClient,
 	}
 }
 
 func (c client) GetAccount(ctx context.Context) (string, error) {
-	result, err := c.stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
-	if err != nil {
-		return "", err
+	accountID := os.Getenv("AWS_ACCOUNT_ID")
+	if accountID == "" {
+		return "", errors.New("AWS_ACCOUNT_ID is not set")
 	}
-	if result.Account == nil {
-		return "", errors.New("aws sts GetCallerIdentityWithContext returned no account")
-	}
-	return *result.Account, nil
+	return accountID, nil
 }
 
 func (c client) GetAccountAlias(ctx context.Context) (string, error) {
